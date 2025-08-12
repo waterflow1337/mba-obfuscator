@@ -2,6 +2,10 @@
 
 JavaScript obfuscator using Mixed Boolean-Arithmetic transformations. Turns simple math into complex expressions.
 
+## ⚠️ Disclaimer
+
+This is an experimental research project. Not intended for production use. May have bugs and edge cases. Use at your own risk.
+
 ## What it does
 
 Transforms code like this:

@@ -63,7 +63,6 @@ console.log(obfuscated.code);
 
 Check the `examples/` folder:
 - `quickstart.js` - Simple example
-- `real-world.js` - Auth function
 - `crypto-example.js` - Hash functions
 
 ## How it works

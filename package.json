@@ -1,0 +1,40 @@
+{
+  "name": "mba-obfuscator",
+  "version": "1.0.0",
+  "description": "Mixed Boolean-Arithmetic (MBA) Obfuscator",
+  "main": "src/index.js",
+  "bin": {
+    "mba-obfuscator": "src/index.js"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node test/example.js"
+  },
+  "keywords": [
+    "obfuscation",
+    "mba",
+    "mixed-boolean-arithmetic",
+    "code-protection",
+    "security",
+    "javascript"
+  ],
+  "author": "xth24",
+  "license": "MIT",
+  "dependencies": {
+    "@babel/parser": "^7.23.0",
+    "@babel/traverse": "^7.23.0",
+    "@babel/types": "^7.23.0",
+    "@babel/generator": "^7.23.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/waterflow1337/mba-obfuscator.git"
+  },
+  "bugs": {
+    "url": "https://github.com/waterflow1337/mba-obfuscator/issues"
+  },
+  "homepage": "https://github.com/waterflow1337/mba-obfuscator#readme"
+}

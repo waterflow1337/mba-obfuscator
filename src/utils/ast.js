@@ -1,7 +1,11 @@
 const t = require('@babel/types');
 
+function cloneNode(node) {
+    return t.cloneNode(node, true);
+}
+
 function wrap(expression) {
-    return t.parenthesizedExpression(expression);
+    return t.parenthesizedExpression(cloneNode(expression));
 }
 
 function num32(value) {
@@ -19,7 +23,7 @@ function bigIntFromValue(value) {
 function asUint64Expr(expression) {
     return t.callExpression(
         t.memberExpression(t.identifier('BigInt'), t.identifier('asUintN')),
-        [t.numericLiteral(64), expression]
+        [t.numericLiteral(64), wrap(expression)]
     );
 }
 

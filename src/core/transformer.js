@@ -1,3 +1,4 @@
+const t = require('@babel/types');
 const { initializeRandom, shuffleInPlace, randomInt, randomFloat } = require('../utils/random');
 const { 
     parseJavaScript, 
@@ -10,6 +11,8 @@ const {
 const { MBA_TRANSFORMS_32, applyNestedMBA32 } = require('../transforms/mba32');
 const { MBA_TRANSFORMS_64, applyNestedMBA64 } = require('../transforms/mba64');
 const { wrapWithAffine32, wrapWithAffine64, feistelIdentity64, lcgIdentity } = require('../transforms/identities');
+const { maybeAddNoise } = require('../transforms/noise');
+const { createIIFE } = require('../utils/ast');
 const { 
     obfuscateComparison32, 
     obfuscateZeroCheck, 
@@ -26,7 +29,8 @@ const DEFAULT_CONFIG = {
     scope: 'all',             // 'all', 'pragma', 'auto' - default to 'all' for automatic obfuscation
     maxNestingDepth: 2,       // Maximum nesting depth for MBA transformations
     comparisonRatio: 0.3,     // Ratio of comparisons to transform
-    enableComparisons: true   // Whether to transform comparison operations
+    enableComparisons: true,  // Whether to transform comparison operations
+    noiseRatio: 0.4           // Probability of wrapping expressions with neutral noise
 };
 
 class MBATransformer {
@@ -128,7 +132,9 @@ class MBATransformer {
     
     transformSingleExpression(candidate) {
         const { path, operator } = candidate;
-        const { left, right } = path.node;
+        const { leftRef, rightRef, hoisted } = this.memoizeOperands(path);
+        const left = t.cloneNode(leftRef, true);
+        const right = t.cloneNode(rightRef, true);
         
         let transformed;
         const is64bit = this.shouldUse64Bit(candidate);
@@ -160,8 +166,15 @@ class MBATransformer {
         }
         
         transformed = this.applyIdentityTransformations(transformed, is64bit);
+        transformed = maybeAddNoise(
+            transformed,
+            { left: leftRef, right: rightRef },
+            this.config.noiseRatio,
+            is64bit
+        );
         
-        path.replaceWith(transformed);
+        const finalExpression = hoisted.length > 0 ? createIIFE(hoisted, transformed) : transformed;
+        path.replaceWith(finalExpression);
         this.stats.transformedExpressions++;
     }
     
@@ -345,6 +358,32 @@ class MBATransformer {
             skippedExpressions: 0,
             errors: 0
         };
+    }
+
+    memoizeOperands(path) {
+        const leftPath = path.get('left');
+        const rightPath = path.get('right');
+        let leftRef = leftPath.node;
+        let rightRef = rightPath.node;
+        const hoisted = [];
+
+        if (!leftPath.isPure()) {
+            const leftTemp = path.scope.generateUidIdentifier('mbaL');
+            hoisted.push(t.variableDeclaration('const', [
+                t.variableDeclarator(leftTemp, t.cloneNode(leftRef, true))
+            ]));
+            leftRef = leftTemp;
+        }
+
+        if (!rightPath.isPure()) {
+            const rightTemp = path.scope.generateUidIdentifier('mbaR');
+            hoisted.push(t.variableDeclaration('const', [
+                t.variableDeclarator(rightTemp, t.cloneNode(rightRef, true))
+            ]));
+            rightRef = rightTemp;
+        }
+
+        return { leftRef, rightRef, hoisted };
     }
 }
 

@@ -1,8 +1,8 @@
-
 const fs = require('fs');
 const parser = require('@babel/parser');
 const traverse = require('@babel/traverse').default;
 const generate = require('@babel/generator').default;
+const t = require('@babel/types');
 
 function parseJavaScript(sourceCode, options = {}) {
     const defaultOptions = {
@@ -106,6 +106,10 @@ function findMBACandidates(ast, options = {}) {
             if (!operators.includes(operator)) {
                 return;
             }
+
+            if (!isNumericFriendlyBinary(path.node)) {
+                return;
+            }
             
             const inPragma = isInPragmaRange(path.node, pragmaRanges);
             
@@ -152,6 +156,10 @@ function findComparisonCandidates(ast, options = {}) {
             if (!operators.includes(operator)) {
                 return;
             }
+
+            if (!isComparisonSafe(path.node)) {
+                return;
+            }
             
             const inPragma = isInPragmaRange(path.node, pragmaRanges);
             
@@ -179,6 +187,44 @@ function findComparisonCandidates(ast, options = {}) {
     });
     
     return candidates;
+}
+
+function isStringLiteralLike(node) {
+    if (!node) return false;
+    if (t.isStringLiteral(node)) return true;
+    if (t.isTemplateLiteral(node)) return true;
+    if (t.isBinaryExpression(node) && node.operator === '+') {
+        return isStringLiteralLike(node.left) || isStringLiteralLike(node.right);
+    }
+    if (t.isCallExpression(node)) {
+        const callee = node.callee;
+        if (t.isIdentifier(callee, { name: 'String' })) {
+            return true;
+        }
+        if (t.isMemberExpression(callee) && t.isIdentifier(callee.property)) {
+            const propertyName = callee.property.name;
+            if (['join', 'concat', 'padStart', 'padEnd'].includes(propertyName)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+function isNumericFriendlyBinary(node) {
+    if (node.operator === '+') {
+        return !isStringLiteralLike(node.left) && !isStringLiteralLike(node.right);
+    }
+    return true;
+}
+
+function isComparisonSafe(node) {
+    if (['===', '==', '!==', '!='].includes(node.operator)) {
+        if (isStringLiteralLike(node.left) || isStringLiteralLike(node.right)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 function infersBigIntOperation(node, cache = new Map()) {

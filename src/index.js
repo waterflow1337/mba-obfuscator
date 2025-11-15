@@ -86,6 +86,13 @@ class CLI {
                     }
                     break;
                     
+                case '--noise-ratio':
+                    this.config.noiseRatio = parseFloat(this.getNextArg(++i, 'noise-ratio'));
+                    if (isNaN(this.config.noiseRatio) || this.config.noiseRatio < 0 || this.config.noiseRatio > 1) {
+                        this.error('Noise ratio must be between 0 and 1');
+                    }
+                    break;
+                    
                 case '--disable-comparisons':
                     this.config.enableComparisons = false;
                     break;
@@ -198,6 +205,8 @@ class CLI {
         console.log('  --max-nesting N            Maximum MBA nesting depth (default: 2)');
         console.log('');
         console.log('  --comparison-ratio R       Ratio of comparisons to transform (0-1, default: 0.3)');
+        console.log('');
+        console.log('  --noise-ratio R            Probability of injecting neutral noise (0-1, default: 0.4)');
         console.log('');
         console.log('  --disable-comparisons      Disable comparison obfuscation');
         console.log('');

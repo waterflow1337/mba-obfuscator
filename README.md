@@ -60,6 +60,7 @@ console.log(obfuscated.code);
 - `--mode auto|32|64` - Force 32-bit or 64-bit math (default: auto)
 - `--seed "string"` - Make output deterministic
 - `--comparison-ratio 0.0-1.0` - How many comparisons to obfuscate (default: 0.3)
+- `--noise-ratio 0.0-1.0` - Probability of wrapping MBA expressions in neutral noise (default: 0.4)
 - `--identities affine,feistel,lcg` - Which transformations to use
 - `--stats` - Show what got transformed
 

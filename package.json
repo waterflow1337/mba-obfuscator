@@ -8,7 +8,7 @@
   },
   "scripts": {
     "start": "node src/index.js",
-    "test": "node test/example.js"
+    "test": "node test/regressions.js && node test/example.js"
   },
   "keywords": [
     "obfuscation",

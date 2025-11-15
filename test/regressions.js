@@ -89,10 +89,40 @@ function mix(a, b, c) {
     }
 }
 
+function testLinearBasisTransforms() {
+    const snippet = `
+function sum32(a, b) {
+    return (a + b) >>> 0;
+}
+`;
+    const transformed = obfuscate(snippet, {
+        degree: 1,
+        mode: '32',
+        identities: [],
+        maxNestingDepth: 0,
+        noiseRatio: 0,
+        linearBasisRatio: 1,
+        seed: 'linear-basis'
+    });
+    
+    const originalCtx = runInVm(snippet);
+    const obfuscatedCtx = runInVm(transformed);
+    for (let i = 0; i < 25; i++) {
+        const a = (Math.random() * 0xffffffff) >>> 0;
+        const b = (Math.random() * 0xffffffff) >>> 0;
+        assert.strictEqual(
+            originalCtx.sum32(a, b),
+            obfuscatedCtx.sum32(a, b),
+            'Linear basis transform should preserve addition'
+        );
+    }
+}
+
 function run() {
     testStringConcatenationSafety();
     testSideEffectsEvaluatedOnce();
     testNumericEquivalence();
+    testLinearBasisTransforms();
     console.log('Regression tests passed');
 }
 

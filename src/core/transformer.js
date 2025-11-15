@@ -11,6 +11,7 @@ const {
 const { MBA_TRANSFORMS_32, applyNestedMBA32 } = require('../transforms/mba32');
 const { MBA_TRANSFORMS_64, applyNestedMBA64 } = require('../transforms/mba64');
 const { wrapWithAffine32, wrapWithAffine64, feistelIdentity64, lcgIdentity } = require('../transforms/identities');
+const { buildLinearMBA32 } = require('../transforms/mba_linear');
 const { maybeAddNoise } = require('../transforms/noise');
 const { createIIFE } = require('../utils/ast');
 const { 
@@ -30,7 +31,8 @@ const DEFAULT_CONFIG = {
     maxNestingDepth: 2,       // Maximum nesting depth for MBA transformations
     comparisonRatio: 0.3,     // Ratio of comparisons to transform
     enableComparisons: true,  // Whether to transform comparison operations
-    noiseRatio: 0.4           // Probability of wrapping expressions with neutral noise
+    noiseRatio: 0.4,          // Probability of wrapping expressions with neutral noise
+    linearBasisRatio: 0.35    // Chance to generate MBA expressions via linear systems
 };
 
 class MBATransformer {
@@ -139,29 +141,37 @@ class MBATransformer {
         let transformed;
         const is64bit = this.shouldUse64Bit(candidate);
         
-        if (is64bit) {
-            if (!MBA_TRANSFORMS_64[operator]) {
-                this.stats.skippedExpressions++;
-                return;
-            }
-            
-            transformed = MBA_TRANSFORMS_64[operator](left, right);
-            
-            const nestingDepth = randomInt(0, this.config.maxNestingDepth);
-            if (nestingDepth > 0) {
-                transformed = applyNestedMBA64(transformed, nestingDepth);
-            }
-        } else {
-            if (!MBA_TRANSFORMS_32[operator]) {
-                this.stats.skippedExpressions++;
-                return;
-            }
-            
-            transformed = MBA_TRANSFORMS_32[operator](left, right);
-            
-            const nestingDepth = randomInt(0, this.config.maxNestingDepth);
-            if (nestingDepth > 0) {
-                transformed = applyNestedMBA32(transformed, nestingDepth);
+        if (!is64bit && this.shouldUseLinearMBA(operator)) {
+            transformed = buildLinearMBA32(left, right, operator, {
+                basisSize: 6
+            });
+        }
+        
+        if (!transformed) {
+            if (is64bit) {
+                if (!MBA_TRANSFORMS_64[operator]) {
+                    this.stats.skippedExpressions++;
+                    return;
+                }
+                
+                transformed = MBA_TRANSFORMS_64[operator](left, right);
+                
+                const nestingDepth = randomInt(0, this.config.maxNestingDepth);
+                if (nestingDepth > 0) {
+                    transformed = applyNestedMBA64(transformed, nestingDepth);
+                }
+            } else {
+                if (!MBA_TRANSFORMS_32[operator]) {
+                    this.stats.skippedExpressions++;
+                    return;
+                }
+                
+                transformed = MBA_TRANSFORMS_32[operator](left, right);
+                
+                const nestingDepth = randomInt(0, this.config.maxNestingDepth);
+                if (nestingDepth > 0) {
+                    transformed = applyNestedMBA32(transformed, nestingDepth);
+                }
             }
         }
         
@@ -202,6 +212,16 @@ class MBATransformer {
         }
         
         return wrapped;
+    }
+    
+    shouldUseLinearMBA(operator) {
+        if (!this.config.linearBasisRatio || this.config.linearBasisRatio <= 0) {
+            return false;
+        }
+        if (!['+', '-'].includes(operator)) {
+            return false;
+        }
+        return randomFloat() < this.config.linearBasisRatio;
     }
     
     transformRangeChecks(ast) {

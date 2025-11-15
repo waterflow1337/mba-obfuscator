@@ -93,6 +93,13 @@ class CLI {
                     }
                     break;
                     
+                case '--linear-basis-ratio':
+                    this.config.linearBasisRatio = parseFloat(this.getNextArg(++i, 'linear-basis-ratio'));
+                    if (isNaN(this.config.linearBasisRatio) || this.config.linearBasisRatio < 0 || this.config.linearBasisRatio > 1) {
+                        this.error('Linear basis ratio must be between 0 and 1');
+                    }
+                    break;
+                    
                 case '--disable-comparisons':
                     this.config.enableComparisons = false;
                     break;
@@ -207,6 +214,8 @@ class CLI {
         console.log('  --comparison-ratio R       Ratio of comparisons to transform (0-1, default: 0.3)');
         console.log('');
         console.log('  --noise-ratio R            Probability of injecting neutral noise (0-1, default: 0.4)');
+        console.log('');
+        console.log('  --linear-basis-ratio R     Chance to synthesize MBA via linear systems (0-1, default: 0.35)');
         console.log('');
         console.log('  --disable-comparisons      Disable comparison obfuscation');
         console.log('');

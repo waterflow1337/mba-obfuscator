@@ -10,7 +10,7 @@ const {
 } = require('./parser');
 const { MBA_TRANSFORMS_32, applyNestedMBA32 } = require('../transforms/mba32');
 const { MBA_TRANSFORMS_64, applyNestedMBA64 } = require('../transforms/mba64');
-const { wrapWithAffine32, wrapWithAffine64, feistelIdentity64, lcgIdentity } = require('../transforms/identities');
+const { wrapWithAffine32, wrapWithAffine64, feistelIdentity64, lcgIdentity, wrapWithQuadratic32 } = require('../transforms/identities');
 const { buildLinearMBA32 } = require('../transforms/mba_linear');
 const { maybeAddNoise } = require('../transforms/noise');
 const { createIIFE } = require('../utils/ast');
@@ -208,6 +208,10 @@ class MBATransformer {
             }
             if (identities.has('lcg') && randomFloat() < 0.5) {
                 wrapped = lcgIdentity(wrapped, false);
+            }
+            // Quadratic permutation polynomial identity
+            if (identities.has('quadratic') && randomFloat() < 0.4) {
+                wrapped = wrapWithQuadratic32(wrapped);
             }
         }
         

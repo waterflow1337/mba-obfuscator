@@ -74,23 +74,25 @@ function obfuscateRangeCheck(value, min, max) {
 function bitManipulationComparison(operator, left, right) {
     switch (operator) {
         case '<':
-            return binaryOp('<',
-                binaryOp('>>>', 
+            // When left < right (signed), (left - right) is negative, sign bit is 1
+            // (left - right) >>> 31 extracts the sign bit
+            return binaryOp('!==',
+                binaryOp('>>>',
                     binaryOp('-', wrap(left), wrap(right)),
                     num32(31)
                 ),
-                num32(1)
+                num32(0)
             );
-            
+
         case '>':
-            return binaryOp('<',
-                binaryOp('>>>', 
+            return binaryOp('!==',
+                binaryOp('>>>',
                     binaryOp('-', wrap(right), wrap(left)),
                     num32(31)
                 ),
-                num32(1)
+                num32(0)
             );
-            
+
         default:
             return null;
     }

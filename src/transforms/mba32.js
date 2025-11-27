@@ -6,25 +6,35 @@ const { randomInt } = require('../utils/random');
 function getMBARewrite32(operator, variant = 0) {
     const variants = {
         '+': [
+            // x + y = (x ^ y) + ((x & y) << 1)
             (x, y) => toUint32(binaryOp('+',
                 binaryOp('^', x, y),
                 binaryOp('<<', binaryOp('&', x, y), num32(1))
             )),
-            
-  
+
+            // x + y = (x | y) + (x & y)
             (x, y) => toUint32(binaryOp('+',
                 binaryOp('|', x, y),
                 binaryOp('&', x, y)
             )),
-            
+
+            // x + y = 2*(x | y) - (x ^ y)
             (x, y) => toUint32(binaryOp('-',
                 binaryOp('<<', binaryOp('|', x, y), num32(1)),
                 binaryOp('^', x, y)
             )),
-            
-            (x, y) => toUint32(binaryOp('+',
-                binaryOp('^', x, y),
-                binaryOp('<<', binaryOp('&', x, y), num32(1))
+
+            // Negated double-shift OR form: x + y = (x ^ y) - (~(x<<1) | ~(y<<1)) - 1
+            // Uses identity: -2x - 1 = ~(2x) = ~(x<<1)
+            (x, y) => toUint32(binaryOp('-',
+                binaryOp('-',
+                    binaryOp('^', x, y),
+                    binaryOp('|',
+                        unaryOp('~', binaryOp('<<', x, num32(1))),
+                        unaryOp('~', binaryOp('<<', y, num32(1)))
+                    )
+                ),
+                num32(1)
             ))
         ],
         

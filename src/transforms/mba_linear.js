@@ -77,6 +77,40 @@ const BASIS_POOL_32 = [
         name: 'yShift',
         evaluate: (_, y) => (y << 1) >>> 0,
         build: ctx => toUint32(binaryOp('<<', ctx.right, num32(1)))
+    },
+    // Additional Boolean basis functions
+    {
+        // NAND: ~(x & y) = ~x | ~y
+        name: 'nand',
+        evaluate: (x, y) => (~(x & y)) >>> 0,
+        build: ctx => toUint32(unaryOp('~', binaryOp('&', ctx.left, ctx.right)))
+    },
+    {
+        // NOR: ~(x | y) = ~x & ~y
+        name: 'nor',
+        evaluate: (x, y) => (~(x | y)) >>> 0,
+        build: ctx => toUint32(unaryOp('~', binaryOp('|', ctx.left, ctx.right)))
+    },
+    {
+        // ~(x<<1) | ~(y<<1) - negated double-shift OR basis
+        name: 'notShiftOr',
+        evaluate: (x, y) => ((~(x << 1)) | (~(y << 1))) >>> 0,
+        build: ctx => toUint32(binaryOp('|',
+            unaryOp('~', binaryOp('<<', ctx.left, num32(1))),
+            unaryOp('~', binaryOp('<<', ctx.right, num32(1)))
+        ))
+    },
+    {
+        // x | ~y (implication-like)
+        name: 'orNotY',
+        evaluate: (x, y) => (x | (~y)) >>> 0,
+        build: ctx => toUint32(binaryOp('|', ctx.left, unaryOp('~', ctx.right)))
+    },
+    {
+        // ~x | y (reverse implication-like)
+        name: 'orNotX',
+        evaluate: (x, y) => ((~x) | y) >>> 0,
+        build: ctx => toUint32(binaryOp('|', unaryOp('~', ctx.left), ctx.right))
     }
 ];
 

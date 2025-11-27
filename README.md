@@ -17,7 +17,7 @@ if (result > 25) { /* ... */ }
 Into this:
 ```javascript
 let result = (Math.imul(3459867463, ((Math.imul(3871299191, (((((x) | (y)) + ((x) & (y))) >>> 0)))) + (870483952) >>> 0))) + (2636807280) >>> 0;
-if (((((25)) - ((result))) >>> (31)) < (1)) { /* ... */ }
+if (((((25)) - ((result))) >>> (31)) !== (0)) { /* ... */ }
 ```
 
 ## Install
@@ -62,7 +62,7 @@ console.log(obfuscated.code);
 - `--comparison-ratio 0.0-1.0` - How many comparisons to obfuscate (default: 0.3)
 - `--noise-ratio 0.0-1.0` - Probability of wrapping MBA expressions in neutral noise (default: 0.4)
 - `--linear-basis-ratio 0.0-1.0` - Probability of synthesizing rewrites via linear systems (default: 0.35)
-- `--identities affine,feistel,lcg` - Which transformations to use
+- `--identities affine,feistel,lcg,quadratic` - Identity transformations to apply
 - `--stats` - Show what got transformed
 
 ## Examples
@@ -75,11 +75,23 @@ Check the `examples/` folder:
 
 Uses MBA (Mixed Boolean-Arithmetic) to replace arithmetic operations with equivalent but complex expressions. Supports both 32-bit and 64-bit (BigInt) operations.
 
-Transforms:
+### Transforms
 - Addition, subtraction, multiplication
+- Bitwise operations (XOR, AND, OR)
 - Comparisons (>, <, ===, !==)
 - Zero checks and range checks
 - BigInt operations
+
+### Identity Transformations
+Optional wrappers that add complexity while preserving values:
+
+- **affine** - Linear transformation `f(x) = a*x + b` with modular inverse
+- **lcg** - Linear congruential generator wrapping
+- **feistel** - 2-round Feistel network (64-bit only)
+- **quadratic** - Quadratic permutation polynomial `f(x) = a₂x² + a₁x + a₀` over Z/(2³²)
+
+### Linear MBA Synthesis
+Can generate unique MBA expressions by solving linear systems over modular arithmetic, using a pool of Boolean basis functions (XOR, AND, OR, NAND, NOR, etc.).
 
 ## License
 

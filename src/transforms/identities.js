@@ -142,12 +142,12 @@ function lcgIdentity(expression, use64bit = false) {
         const aInv = modInverse64(a);
         const MASK = (1n << 64n) - 1n;
         const cInv = ((-aInv) * c) & MASK;
-        
+
         const forward = asUint64Expr(binaryOp('+',
             binaryOp('*', bigIntFromValue(a), asUint64Expr(wrap(expression))),
             bigIntFromValue(c)
         ));
-        
+
         return asUint64Expr(binaryOp('+',
             binaryOp('*', bigIntFromValue(aInv), forward),
             bigIntFromValue(cInv)
@@ -157,12 +157,12 @@ function lcgIdentity(expression, use64bit = false) {
         const c = randomInt(0, 0xffffffff) >>> 0;
         const aInv = modInverse32(a) >>> 0;
         const cInv = (Math.imul(-aInv | 0, c >>> 0) >>> 0) >>> 0;
-        
+
         const forward = t.binaryExpression('>>>',
             binaryOp('+', imul32(a, wrap(expression)), num32(c)),
             num32(0)
         );
-        
+
         return t.binaryExpression('>>>',
             binaryOp('+', imul32(aInv, forward), num32(cInv)),
             num32(0)
@@ -170,9 +170,86 @@ function lcgIdentity(expression, use64bit = false) {
     }
 }
 
+/**
+ * Quadratic permutation polynomial over Z/(2^32)
+ * f(x) = a2*x^2 + a1*x + a0 where:
+ * - a1 is odd (for invertibility)
+ * - a2^2 ≡ 0 mod 2^32 (a2 must be multiple of 2^16)
+ *
+ * Inverse: f^(-1)(x) = b2*x^2 + b1*x + b0
+ */
+function wrapWithQuadratic32(expression) {
+    const M = 2n ** 32n;
+
+    // a1 must be odd, a2 must be multiple of 2^16 so a2^2 ≡ 0 mod 2^32
+    const a0 = BigInt(randomInt(0, 0xffffffff) >>> 0);
+    const a1 = BigInt(randomOdd32());
+    const a2 = BigInt((randomInt(0, 0xffff) << 16) >>> 0);
+
+    // Compute modular inverse of a1
+    const a1Inv = BigInt(modInverse32(Number(a1)));
+
+    // Compute inverse polynomial coefficients per Theorem 3
+    // b2 = -a1^(-3) * a2
+    const a1Inv2 = (a1Inv * a1Inv) % M;
+    const a1Inv3 = (a1Inv2 * a1Inv) % M;
+    const b2 = (M - ((a1Inv3 * a2) % M)) % M;
+
+    // b1 = a1^(-1) + 2 * a0 * a1^(-3) * a2
+    const b1 = (a1Inv + (2n * a0 * a1Inv3 * a2) % M) % M;
+
+    // b0 = -a0 * b1 - a0^2 * b2
+    const b0 = (M - (((a0 * b1) % M + (a0 * a0 % M * b2) % M) % M)) % M;
+
+    // Helper to create Math.imul(x, x) for x^2 mod 2^32
+    const squareExpr = (id) => t.callExpression(
+        t.memberExpression(t.identifier('Math'), t.identifier('imul')),
+        [id, id]
+    );
+
+    // Forward: f(x) = a2*x^2 + a1*x + a0
+    const xId = t.identifier('_qx');
+    const forward = t.callExpression(
+        t.arrowFunctionExpression(
+            [xId],
+            t.binaryExpression('>>>',
+                binaryOp('+',
+                    binaryOp('+',
+                        imul32(Number(a2), squareExpr(xId)),
+                        imul32(Number(a1), xId)
+                    ),
+                    num32(Number(a0))
+                ),
+                num32(0)
+            )
+        ),
+        [wrap(expression)]
+    );
+
+    // Inverse: f^(-1)(y) = b2*y^2 + b1*y + b0
+    const yId = t.identifier('_qy');
+    return t.callExpression(
+        t.arrowFunctionExpression(
+            [yId],
+            t.binaryExpression('>>>',
+                binaryOp('+',
+                    binaryOp('+',
+                        imul32(Number(b2), squareExpr(yId)),
+                        imul32(Number(b1), yId)
+                    ),
+                    num32(Number(b0))
+                ),
+                num32(0)
+            )
+        ),
+        [forward]
+    );
+}
+
 module.exports = {
     wrapWithAffine32,
-    wrapWithAffine64, 
+    wrapWithAffine64,
     feistelIdentity64,
-    lcgIdentity
+    lcgIdentity,
+    wrapWithQuadratic32
 };
